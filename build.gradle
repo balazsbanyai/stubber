@@ -1,26 +1,21 @@
 apply plugin: 'groovy'
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'cz.malohlava:visteg:1.0.0'
+    }
+}
+
+apply plugin: 'cz.malohlava.visteg'
+apply plugin: Stubber
 
 repositories {
     jcenter()
 }
 
-project.ext.stub = { dep ->
-    def name = dep.tokenize('.|:')
-            .collect({ it -> it.capitalize() })
-            .join()
-
-    def stubx = configurations.create('stubConfig')
-    project.dependencies {
-        stubConfig (dep)
-    }
-
-    Mangler task = project.tasks.create(name: "createStubFor${name}", type: Mangler)
-    task.src = files(stubx)
-    def out = project.files("stubFor${name}.jar")
-    out.builtBy(task)
-    out
-}
-
 dependencies {
     compile stub('com.google.guava:guava:19.0')
+    // TODO: compile stub('com.google.inject:guice:4.1.0')
 }
