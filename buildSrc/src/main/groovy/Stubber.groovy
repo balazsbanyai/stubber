@@ -18,9 +18,7 @@ public class Stubber implements Plugin<Project> {
             def stubConfiguration = project.configurations.detachedConfiguration(dependency)
 
             def name = [dependency.group, dependency.name, dependency.version]
-                    .collect({ it -> it.capitalize() })
-                    .join()
-                    .tokenize('.')
+                    .collect({ it -> it.tokenize('.').collect({it2 -> it2.capitalize()}).join() })
                     .collect({ it -> it.capitalize() })
                     .join()
 
