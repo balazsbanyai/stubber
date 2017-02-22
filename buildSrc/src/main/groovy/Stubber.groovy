@@ -2,6 +2,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileTree
+import org.gradle.api.internal.notations.DependencyNotationParser
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Zip
 import javassist.ClassPool
@@ -12,12 +13,16 @@ public class Stubber implements Plugin<Project> {
     void apply(Project project) {
 
         project.ext.stub = { dep ->
-            def name = dep.tokenize('.|:')
-                    .collect({ it -> it.capitalize() })
-                    .join()
 
             def dependency = project.dependencies.create(dep);
             def stubConfiguration = project.configurations.detachedConfiguration(dependency)
+
+            def name = [dependency.group, dependency.name, dependency.version]
+                    .collect({ it -> it.capitalize() })
+                    .join()
+                    .tokenize('.')
+                    .collect({ it -> it.capitalize() })
+                    .join()
 
             Copy extractorTask = project.tasks.create(name: "unpack${name}", type: Copy)
             extractorTask.from project.zipTree(stubConfiguration.singleFile)
