@@ -73,6 +73,10 @@ public class CreateStubTask extends Copy {
             def dest = "$destinationDir/${fileCopyDetails.path}"
             logger.debug "writing $dest"
             try {
+                File target = project.file(dest)
+                def parent = Paths.get(target.path).parent
+                parent.toFile().mkdirs()
+
                 FileOutputStream fos = new FileOutputStream(dest);
                 fos.write(modifiedBytes);
             } catch (Exception e) {
