@@ -1,11 +1,10 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileTree
-import org.gradle.api.internal.notations.DependencyNotationParser
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Zip
-import javassist.ClassPool
 
 public class Stubber implements Plugin<Project> {
 
@@ -23,7 +22,9 @@ public class Stubber implements Plugin<Project> {
                     .join()
 
             Copy extractorTask = project.tasks.create(name: "unpack${name}", type: Copy)
-            extractorTask.from project.zipTree(stubConfiguration.singleFile)
+
+            def directDependency = stubConfiguration.first();
+            extractorTask.from project.zipTree(directDependency)
             extractorTask.into project.file("${project.buildDir}/unpacked/$name")
             // TODO handle AAR!
 //    if (file.name.endsWith(".aar")) {
@@ -32,25 +33,32 @@ public class Stubber implements Plugin<Project> {
 //                .first()
 //    }
 
-
-            CreateStubTask createStubTask = project.tasks.create(name: "createStubFor${name}", type: CreateStubTask)
-
-            createStubTask.sourcePath = extractorTask.outputs.files
             FileTree tree = extractorTask.outputs.files.asFileTree.matching {
                 include '**/*.class'
             }
 
-            createStubTask.from tree
-            createStubTask.into "${project.buildDir}/stubbed/$name"
+            CreateStubTask createStubTask = project.tasks.create(
+                    name: "createStubFor${name}",
+                    type: CreateStubTask,
+                    {
+                        configuration = stubConfiguration
+                        sourcePath = extractorTask.outputs.files
+                        from tree
+                        into "${project.buildDir}/stubbed/$name"
+                    })
 
-            def classPath = null
+            Task load = project.tasks.create(name: "loadClassesForStubbing${name}", type: LoadClassesTask, {
+                configuration = stubConfiguration
+            })
+            createStubTask.dependsOn load
 
-            createStubTask.doFirst {
-                classPath = ClassPool.default.insertClassPath(stubConfiguration.singleFile.getAbsolutePath());
-            }
-            createStubTask.doLast {
-                ClassPool.default.removeClassPath(classPath);
-            }
+            Task unload = project.tasks.create(name: "unloadClassesForStubbing${name}", type: UnloadClassesTask, {
+                classPathDefs = load.outputs.files
+                loadTask = load
+                onlyIf { createStubTask.dependsOnTaskDidWork() }
+            })
+            createStubTask.finalizedBy unload
+
 
             Zip jarTask = project.tasks.create(name: "jarStubFor${name}", type: Zip)
             jarTask.from createStubTask.outputs.files

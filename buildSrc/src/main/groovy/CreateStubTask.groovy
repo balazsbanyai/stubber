@@ -1,5 +1,7 @@
+import javassist.ClassPath
 import javassist.ClassPool
 import javassist.CtClass
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.tasks.Copy
@@ -17,9 +19,37 @@ public class CreateStubTask extends Copy {
     @InputFiles
     FileCollection sourcePath
 
+    @Input
+    Configuration configuration
+
+    Set<ClassPath> classPaths = []
+
     CreateStubTask() {
+
         eachFile { FileCopyDetails fileCopyDetails ->
-            performOnEachFile(fileCopyDetails)
+
+
+            try {
+                performOnEachFile(fileCopyDetails)
+            } finally {
+
+            }
+        }
+
+
+
+    }
+
+    def loadClassesIfNeeded() {
+        configuration.each { dependencyFile ->
+            println dependencyFile
+            classPaths += ClassPool.default.insertClassPath(dependencyFile.getAbsolutePath());
+        }
+    }
+
+    def unloadClasses() {
+        classPaths.each { classPath ->
+            ClassPool.default.removeClassPath(classPath);
         }
     }
 
