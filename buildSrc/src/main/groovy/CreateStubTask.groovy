@@ -13,8 +13,9 @@ import java.nio.file.Paths
 public class CreateStubTask extends Copy {
 
     private static final String EMPTY_BODY = "{}"
+    private static final String RETURN_NULL_BODY = "{return null;}"
     private static final String THROWING_BODY = "{throw new RuntimeException(\"stub!\");}"
-    private static final Set EMPTY_METHODS = [ 'finalize' ]
+    private static final Set EMPTY_METHODS = [ 'finalize', 'toString' ]
 
     @InputFiles
     FileCollection sourcePath
@@ -25,19 +26,7 @@ public class CreateStubTask extends Copy {
     Set<ClassPath> classPaths = []
 
     CreateStubTask() {
-
-        eachFile { FileCopyDetails fileCopyDetails ->
-
-
-            try {
-                performOnEachFile(fileCopyDetails)
-            } finally {
-
-            }
-        }
-
-
-
+        eachFile this.&performOnEachFile
     }
 
     def loadClassesIfNeeded() {
@@ -87,7 +76,11 @@ public class CreateStubTask extends Copy {
                 logger.debug "\t${method.name}"
 
                 if (EMPTY_METHODS.contains(method.name)) {
-                    method.setBody(EMPTY_BODY)
+                    if (method.returnType.name == void.class.name) {
+                        method.setBody(EMPTY_BODY)
+                    } else {
+                        method.setBody(RETURN_NULL_BODY)
+                    }
                 } else {
                     method.setBody(THROWING_BODY)
                 }

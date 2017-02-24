@@ -5,6 +5,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 public class ThrowTest {
 
     @Rule
@@ -23,8 +26,19 @@ public class ThrowTest {
     }
 
     @Test
-    public void finalizerDoesNotThrow() {
-        // new EventBus().finalize(); TODO
+    public void finalizerDoesNotThrow() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        EventBus bus = new EventBus();
+        Method finalizeMethod = Object.class.getDeclaredMethod("finalize");
+        finalizeMethod.setAccessible(true);
+
+        finalizeMethod.invoke(bus);
     }
+
+    @Test
+    public void toStringDoesNotThrow() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        EventBus bus = new EventBus();
+        bus.toString();
+    }
+
 
 }
