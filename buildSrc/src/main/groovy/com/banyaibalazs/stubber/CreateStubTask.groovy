@@ -1,3 +1,5 @@
+package com.banyaibalazs.stubber
+
 import javassist.ClassPath
 import javassist.ClassPool
 import javassist.CtClass
@@ -16,6 +18,10 @@ public class CreateStubTask extends Copy {
     private static final String RETURN_NULL_BODY = "{return null;}"
     private static final String THROWING_BODY = "{throw new RuntimeException(\"stub!\");}"
     private static final Set EMPTY_METHODS = [ 'finalize', 'toString' ]
+
+    public static String resolveName(String nameOfDependency) {
+        "createStubFor${nameOfDependency}"
+    }
 
     @InputFiles
     FileCollection sourcePath

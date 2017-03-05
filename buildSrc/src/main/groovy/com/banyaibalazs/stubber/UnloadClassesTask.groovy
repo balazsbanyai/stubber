@@ -1,3 +1,5 @@
+package com.banyaibalazs.stubber
+
 import javassist.ClassPool
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileCollection

@@ -1,3 +1,5 @@
+package com.banyaibalazs.stubber
+
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -7,8 +9,6 @@ import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Zip
 
-import javax.rmi.CORBA.Stub
-import java.util.function.Predicate
 
 public class Stubber implements Plugin<Project> {
 
@@ -25,7 +25,7 @@ public class Stubber implements Plugin<Project> {
         project.ext.stub = { dep ->
 
             def dependency = project.dependencies.create(dep);
-            def name = resolveName(dependency)
+            def name = BaseNameResolver.resolveName(dependency)
             def model = cache
                     .stream()
                     .filter({m -> m.name.equals(name) })
@@ -41,15 +41,9 @@ public class Stubber implements Plugin<Project> {
 
     }
 
-    static String resolveName(Dependency dependency) {
-        [dependency.group, dependency.name, dependency.version]
-                .collect({ it -> it.tokenize('.').collect({it2 -> it2.capitalize()}).join() })
-                .collect({ it -> it.capitalize() })
-                .join()
-    }
 
     def createStubber(Dependency dependency, Project project) {
-        def name = resolveName(dependency)
+        def name = BaseNameResolver.resolveName(dependency)
 
         def stubConfiguration = project.configurations.detachedConfiguration(dependency)
 
@@ -70,7 +64,7 @@ public class Stubber implements Plugin<Project> {
         }
 
         CreateStubTask createStubTask = project.tasks.create(
-                name: "createStubFor${name}",
+                name: CreateStubTask.resolveName(name),
                 type: CreateStubTask,
                 {
                     configuration = stubConfiguration

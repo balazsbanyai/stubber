@@ -1,4 +1,6 @@
-import org.junit.Test
+package com.banyaibalazs.stubber
+
+import org.junit.*
 
 class UnitTest {
 
