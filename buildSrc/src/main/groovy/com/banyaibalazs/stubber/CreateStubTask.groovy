@@ -3,11 +3,9 @@ package com.banyaibalazs.stubber
 import javassist.ClassPath
 import javassist.ClassPool
 import javassist.CtClass
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.tasks.Copy
-import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 
 import java.nio.file.Paths
@@ -26,26 +24,10 @@ public class CreateStubTask extends Copy {
     @InputFiles
     FileCollection sourcePath
 
-    @Input
-    Configuration configuration
-
     Set<ClassPath> classPaths = []
 
     CreateStubTask() {
         eachFile this.&performOnEachFile
-    }
-
-    def loadClassesIfNeeded() {
-        configuration.each { dependencyFile ->
-            println dependencyFile
-            classPaths += ClassPool.default.insertClassPath(dependencyFile.getAbsolutePath());
-        }
-    }
-
-    def unloadClasses() {
-        classPaths.each { classPath ->
-            ClassPool.default.removeClassPath(classPath);
-        }
     }
 
     public void performOnEachFile(FileCopyDetails fileCopyDetails) {

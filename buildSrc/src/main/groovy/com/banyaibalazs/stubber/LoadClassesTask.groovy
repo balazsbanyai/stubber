@@ -3,15 +3,15 @@ package com.banyaibalazs.stubber
 import javassist.ClassPath
 import javassist.ClassPool
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.tasks.Input
+import org.gradle.api.file.FileCollection
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 
 public class LoadClassesTask extends DefaultTask {
 
-    @Input
-    Configuration configuration
+    @InputFiles
+    FileCollection classesJars
 
     Set<ClassPath> classPaths = []
 
@@ -21,8 +21,8 @@ public class LoadClassesTask extends DefaultTask {
     @TaskAction
     void putJarsOnClasspath() {
         new FileWriter(classPathDefs, false).close()
-        configuration.each { dependencyFile ->
-            def path = dependencyFile.getAbsolutePath()
+        classesJars.files.each { classesJar ->
+            def path = classesJar.getAbsolutePath()
             ClassPath cp = ClassPool.default.insertClassPath(path)
             classPaths += cp
             classPathDefs.append("$path\n")

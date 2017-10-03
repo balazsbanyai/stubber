@@ -1,5 +1,6 @@
 package com.banyaibalazs.stubber
 
+import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -41,23 +42,46 @@ public class Stubber implements Plugin<Project> {
 
     }
 
-
     def createStubber(Dependency dependency, Project project) {
         def name = BaseNameResolver.resolveName(dependency)
 
         def stubConfiguration = project.configurations.detachedConfiguration(dependency)
 
-        Copy extractorTask = project.tasks.create(name: "unpack${name}", type: Copy)
-
         def directDependency = stubConfiguration.first();
-        extractorTask.from project.zipTree(directDependency)
-        extractorTask.into project.file("${project.buildDir}/unpacked/$name")
-        // TODO handle AAR!
-//    if (file.name.endsWith(".aar")) {
-//        classesJar = project.zipTree(file)
-//                .matching { include "classes.jar" }
-//                .first()
-//    }
+
+        Copy extractorTask = project.tasks.create(name: "unpack${name}", type: Copy, {
+            into project.file("${project.buildDir}/unpacked/$name")
+        })
+
+        def jarFiles = []
+        if (directDependency.name.endsWith(".aar")) {
+            def classesJar = project.zipTree(directDependency)
+                    .matching { include "classes.jar" }
+                    .first()
+
+            def libs = project.zipTree(directDependency)
+                    .matching { include "libs/**" }
+
+            libs.files.each {
+                def libJar = project.zipTree(it)
+                extractorTask.from libJar
+                jarFiles.add it
+            }
+
+            def jarFile = project.zipTree(classesJar)
+            extractorTask.from jarFile
+            jarFiles.add classesJar
+        } else if (directDependency.name.endsWith(".jar")) {
+            def jarFile = project.zipTree(directDependency)
+            extractorTask.from jarFile
+            jarFiles.add directDependency
+        } else {
+            throw new GradleException("Failed to stub unknown extension $directDependency.name")
+        }
+
+        jarFiles += injectAdditionalJarsForCompilation(project)
+
+        def jarFileCollection = project.files(jarFiles)
 
         FileTree tree = extractorTask.outputs.files.asFileTree.matching {
             include '**/*.class'
@@ -67,14 +91,13 @@ public class Stubber implements Plugin<Project> {
                 name: CreateStubTask.resolveName(name),
                 type: CreateStubTask,
                 {
-                    configuration = stubConfiguration
                     sourcePath = extractorTask.outputs.files
                     from tree
                     into "${project.buildDir}/stubbed/$name"
                 })
 
         Task load = project.tasks.create(name: "loadClassesForStubbing${name}", type: LoadClassesTask, {
-            configuration = stubConfiguration
+            classesJars = jarFileCollection
         })
         createStubTask.dependsOn load
 
@@ -97,5 +120,23 @@ public class Stubber implements Plugin<Project> {
 
         StubberModel model = new StubberModel(name: name, output: collection)
         return model
+    }
+
+    static def injectAdditionalJarsForCompilation(def project) {
+        def additionalJars = []
+        additionalJars.add injectAndroidBootClasspath(project)
+        return additionalJars
+    }
+
+    private static injectAndroidBootClasspath(def project) {
+        def additionalJars = []
+        project.plugins.all { plugin ->
+            if (plugin.class.name.matches('com\\.android\\.build\\.gradle\\.[aA-zZ]*Plugin')) {
+                project.android.getBootClasspath().each { runtimeJar ->
+                    additionalJars.add runtimeJar
+                }
+            }
+        }
+        return additionalJars;
     }
 }
